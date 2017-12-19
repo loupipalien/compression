@@ -115,14 +115,14 @@ public class BitInputStream {
 
     /**
      * 读取比特队列
-     * @param n 读取的比特数
+     * @param n 读取的比特个数
      * @return 比特队列中 n 个比特的值
      * @throws IOException
      */
     public int readBits(int n) throws IOException {
         int val = 0;
         for (int m = 0; m < n; m++) {
-            // 每 8 位再读一个字节
+            // 每 8 位读一个字节
             if (bitPos == 0) {
                 bitVal = readByte();
             }
