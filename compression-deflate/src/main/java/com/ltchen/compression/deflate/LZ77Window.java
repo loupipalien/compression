@@ -91,4 +91,69 @@ public class LZ77Window {
         }
     }
 
+    /**
+     * 在之前的字节中查找与 bytes 相同的串, 返回一个 LZ77Pair 对象
+     * @param bytes 字节数组
+     * @param off 起始偏移
+     * @param len 查找的字节数
+     * @return LZ77Pair
+     */
+    public LZ77Pair find(byte[] bytes, int off, int len) {
+        // 如果滑动窗口为空则返回 null
+        if (size == 0) {
+            return null;
+        }
+        // 在滑动窗口中从后向前做匹配
+        for (int i = 0; i < size; i++) {
+            // 已匹配的长度
+            int matchLen = 0;
+            int start = (pos - i - 1) & mask;
+            // 匹配的起始下标
+            int x = start;
+            int y = off;
+            // 确定匹配的字节个数
+            while (matchLen < MAX_MATCH && y < len) {
+                if (dict[x] != bytes[y]) {
+                    break;
+                }
+                matchLen++;
+                x = (x + 1) & mask;
+                /*
+                 * 当 x 匹配到达 pos 位置时重置 x 为 start,
+                 * 可认为将 bytes 中已匹配的字符也加入到了滑动窗口中
+                 */
+                if (x == pos) {
+                    x = start;
+                }
+                y++;
+            }
+            // 当大于最小匹配时返回第一个匹配的 LZ77Pair
+            if (matchLen >= MAX_MATCH) {
+                return new LZ77Pair(i, matchLen);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从滑动窗口中拷贝字节
+     * @param dist 距离
+     * @param len 长度
+     * @return byte[]
+     */
+    public byte[] getBytes(int dist, int len) {
+        byte[] bytes = new byte[len];
+        int start = (pos - dist) & mask;
+        int x = start;
+        for (int i = 0; i < len; i++) {
+            // 从滑动窗口中拷贝数据
+            bytes[i]  =  dict[x];
+            x = (x + 1) & mask;
+            // 重定位到起始位置, 循环拷贝
+            if (start == pos) {
+                x = start;
+            }
+        }
+        return bytes;
+    }
 }
