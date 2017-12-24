@@ -1,6 +1,6 @@
-### 霍夫曼压缩实现 (Java)
+### 霍夫曼压缩实现
 
-#### 使用方法
+- 使用方法
 
 ```
 java HuffmanCompressor -vpcd [in-file] [out-file]
