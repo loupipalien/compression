@@ -331,7 +331,7 @@ public class HuffmanCompressor implements Compressor{
      * 打印使用方法并退出
      */
     private static void usage() {
-        System.out.println("用法:");
+        System.out.println("使用方法:");
         System.out.println("\tjava HuffmanCompressor -vpcd [inFilePath] [outFilePath]");
         System.out.println("选项:");
         System.out.println("\t-v  显示详情");
