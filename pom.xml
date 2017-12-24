@@ -10,6 +10,8 @@
   <url>http://maven.apache.org</url>
 
   <modules>
+    <module>compression-api</module>
+    <module>compression-huffman</module>
     <module>compression-deflate</module>
   </modules>
 

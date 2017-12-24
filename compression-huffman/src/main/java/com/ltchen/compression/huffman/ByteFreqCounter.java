@@ -6,7 +6,7 @@ import java.io.InputStream;
 
 /**
  * @author : ltchen
- * @date : 2017/12/23
+ * @date : 2017/12/02
  * @desc :
  */
 public class ByteFreqCounter {
@@ -20,14 +20,13 @@ public class ByteFreqCounter {
     private static final byte[] buffer = new byte[BUFFER_SIZE];
 
     public ByteFreqCounter(InputStream is) throws IOException {
-
         // 记录读入 buffer 的字节个数
         int number;
         DataInputStream dis = new DataInputStream(is);
         while ((number = dis.read(buffer)) != -1) {
             for (int i = 0; i < number; i++) {
-                // 统计字节出现的频次
-                byteFreqs[buffer[i]] += 1;
+                // 统计字节出现的频次(byte 转换为无符号 byte)
+                byteFreqs[buffer[i] & 0xFF] += 1;
             }
         }
     }
