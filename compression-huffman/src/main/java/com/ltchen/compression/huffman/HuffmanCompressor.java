@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * @author : ltchen
- * @date : 2017/12/02
+ * @date : 2017/12/15
  * @desc : 霍夫曼压缩
  */
 public class HuffmanCompressor implements Compressor{
@@ -38,8 +38,6 @@ public class HuffmanCompressor implements Compressor{
      * 最新计算的百分比
      */
     private long lastPercent;
-
-    public HuffmanCompressor() {}
 
     public HuffmanCompressor(String filePath, String fileName, long fileSize, boolean showProgress) {
         this.filePath = filePath;
@@ -262,23 +260,6 @@ public class HuffmanCompressor implements Compressor{
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-//        HuffmanCompressor compressor = new HuffmanCompressor();
-//        InputStream is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1");
-//        OutputStream os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.compress");
-//        long startTime = System.currentTimeMillis();
-//        compressor.compress(is, os);
-//        long endTime = System.currentTimeMillis();
-//        // 压缩耗时
-//        System.out.println(String.format("压缩耗时 %.3f 秒", (endTime - startTime) / 1000.0));
-//        is.close();os.close();
-//        is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.compress");
-//        os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.decompress");
-//        long startTime2 = System.currentTimeMillis();
-//        compressor.decompress(is, os);
-//        long endTime2 = System.currentTimeMillis();
-//        // 解压缩耗时
-//        System.out.println(String.format("解压缩耗时 %.3f 秒", (endTime2 - startTime2) / 1000.0));
-//        is.close();os.close();
         // 检查参数
         if (args.length != 3) {
             usage();
@@ -311,7 +292,7 @@ public class HuffmanCompressor implements Compressor{
                 huffmanCompressor.compress(in, out);
                 // 压缩统计
                 long diff = inFile.length() - outFile.length();
-                double ratio = (outFile.length() / inFile.length()) * 100;
+                double ratio = ((double) outFile.length() / (double)inFile.length()) * 100;
                 if (diff > 0) {
                     info = String.format("文件大小减小了 %s 字节, 压缩率为 %.1f%%", diff, ratio);
                 } else {

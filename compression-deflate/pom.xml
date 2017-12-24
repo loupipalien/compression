@@ -13,10 +13,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
+            <groupId>com.ltchen.compression</groupId>
+            <artifactId>compression-api</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * @author : ltchen
- * @date : 2017/12/22
+ * @date : 2017/12/10
  * @desc : 霍夫曼树
  */
 public class HuffmanTable {

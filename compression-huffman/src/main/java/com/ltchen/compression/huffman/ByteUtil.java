@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * @author : ltchen
- * @date : 2017/12/03
+ * @date : 2017/12/04
  * @desc : 字节工具类
  */
 public class ByteUtil {

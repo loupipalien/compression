@@ -2,7 +2,7 @@ package com.ltchen.compression.deflate;
 
 /**
  * @author : ltchen
- * @date : 2017/12/20
+ * @date : 2017/12/24
  * @desc : LZ77 算法中 distance/length 对
  */
 public class LZ77Pair {

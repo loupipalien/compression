@@ -13,6 +13,7 @@
     <module>compression-api</module>
     <module>compression-huffman</module>
     <module>compression-deflate</module>
+      <module>compression-lz77</module>
   </modules>
 
   <properties>

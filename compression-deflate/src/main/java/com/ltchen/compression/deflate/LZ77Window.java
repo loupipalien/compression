@@ -2,7 +2,7 @@ package com.ltchen.compression.deflate;
 
 /**
  * @author : ltchen
- * @date : 2017/12/20
+ * @date : 2017/12/23
  * @desc : LZ77 算法中的滑动窗口字典
  */
 public class LZ77Window {

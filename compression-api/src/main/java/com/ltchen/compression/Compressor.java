@@ -10,6 +10,7 @@ import java.io.OutputStream;
  */
 
 public interface Compressor {
+
     /**
      * 从输入流中读取字节数, 通过压缩算法写出到输出流
      * @param in 输入流
