@@ -3,9 +3,9 @@ package com.ltchen.compression.huffman;
 import com.ltchen.compression.Compressor;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
-
-import com.ltchen.compression.huffman.HuffmanCompressUtil.*;
 
 /**
  * @author : ltchen
@@ -13,6 +13,11 @@ import com.ltchen.compression.huffman.HuffmanCompressUtil.*;
  * @desc : 霍夫曼压缩
  */
 public class HuffmanCompressor implements Compressor{
+
+    /**
+     * 输入文件的路径
+     */
+    private String filePath;
 
     /**
      * 输入文件的名称
@@ -36,7 +41,8 @@ public class HuffmanCompressor implements Compressor{
 
     public HuffmanCompressor() {}
 
-    public HuffmanCompressor(String fileName, long fileSize, boolean showProgress) {
+    public HuffmanCompressor(String filePath, String fileName, long fileSize, boolean showProgress) {
+        this.filePath = filePath;
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.showProgress = showProgress;
@@ -47,7 +53,7 @@ public class HuffmanCompressor implements Compressor{
         if (showProgress) {
             long percent = readBytes * 100 / fileSize;
             if (percent != lastPercent) {
-                System.out.println(String.format("%d%%", percent));
+                System.out.println(String.format("%s: 处理进度 %d%%", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),percent));
                 lastPercent = percent;
             }
         }
@@ -58,10 +64,10 @@ public class HuffmanCompressor implements Compressor{
         try {
             // 缓冲包装
             BufferedInputStream bis = new BufferedInputStream(is);
-            // 在流开始处标记, 用于复用流
-            bis.mark(Integer.MAX_VALUE);
+            // 在流开始处标记, 用于复用流 (大文件时 BufferedInputStream 缓冲数据到内存容易导致 java.lang.OutOfMemoryError: java heap space)
+            // bis.mark(Integer.MAX_VALUE);
             // 计算输入流中的字节频次统计
-            ByteFreqCounter byteFreqCounter = new ByteFreqCounter(bis);
+            ByteFreqCounter byteFreqCounter = new ByteFreqCounter(this.filePath);
             // 将频次统计写出, 用于解压是构造霍夫曼树
             writeByteFreqs(os, byteFreqCounter.getByteFreqs());
             // 构造霍夫曼树
@@ -70,7 +76,7 @@ public class HuffmanCompressor implements Compressor{
             Map<Byte,String> huffmanCodeMap = huffmanTree.getHuffmanCodeMap(huffmanTree.getHuffmanCodeMap());
             System.out.println("compress:"+huffmanTree.getHuffmanCodeMap());
             // 重置以复用流
-            bis.reset();
+            // bis.reset();
             // 读取流中字节转换为霍夫曼编码写出
             writeByteAsHuffmanCode(bis, os, huffmanCodeMap);
         } catch (IOException e) {
@@ -88,7 +94,7 @@ public class HuffmanCompressor implements Compressor{
     private void writeByteAsHuffmanCode(InputStream is, OutputStream os, Map<Byte,String> huffmanCodeMap) throws IOException {
         long readBytes = 0;
         DataInputStream dis = new DataInputStream(is);
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[8196];
         // 记录读入 buffer 的字节个数
         int number;
         // 记录剩余的霍夫曼码串
@@ -173,7 +179,7 @@ public class HuffmanCompressor implements Compressor{
         // 记录以处理的字节数
         long readBytes = 0;
         DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[8196];
         // 记录读入 buffer 的字节个数
         int number;
         // 记录剩余的霍夫曼码串
@@ -256,88 +262,88 @@ public class HuffmanCompressor implements Compressor{
     }
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        HuffmanCompressor compressor = new HuffmanCompressor();
-        InputStream is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\MIT.txt");
-        OutputStream os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\MIT.txt.compress");
-        long startTime = System.currentTimeMillis();
-        compressor.compress(is, os);
-        long endTime = System.currentTimeMillis();
-        // 压缩耗时
-        System.out.println(String.format("压缩耗时 %.3f 秒", (endTime - startTime) / 1000.0));
-        is.close();os.close();
-        is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\MIT.txt.compress");
-        os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\MIT.txt.decompress");
-        long startTime2 = System.currentTimeMillis();
-        compressor.decompress(is, os);
-        long endTime2 = System.currentTimeMillis();
-        // 解压缩耗时
-        System.out.println(String.format("解压缩耗时 %.3f 秒", (endTime2 - startTime2) / 1000.0));
-        is.close();os.close();
-//        // 检查参数
-//        if (args.length != 3) {
-//            usage();
-//        }
-//
-//        // Parse flags
-//        boolean verbose = args[0].contains("v");
-//        boolean showProgress = args[0].contains("p");
-//        boolean compress = args[0].contains("c");
-//        boolean decompress = args[0].contains("d");
-//        // 压缩参数和解压缩参数不可同时出现
-//        if (!(compress ^ decompress)) {
-//            usage();
-//        }
-//
-//        try {
-//            // 输入输出文件
-//            File inFile = new File(args[1]);
-//            FileInputStream in = new FileInputStream(inFile);
-//            File outFile = new File(args[2]);
-//            FileOutputStream out = new FileOutputStream(outFile);
-//
-//            // 霍夫曼压缩器
-//            HuffmanCompressor huffmanCompressor = new HuffmanCompressor(inFile.getName(), inFile.length(), showProgress);
-//            String info;
-//
-//            // 压缩/解压缩
-//            long startTime = System.currentTimeMillis();
-//            if (compress) {
-//                huffmanCompressor.compress(in, out);
-//                // 压缩统计
-//                long diff = inFile.length() - outFile.length();
-//                double ratio = (outFile.length() / inFile.length()) * 100;
-//                if (diff > 0) {
-//                    info = String.format("文件大小减小了 %s 字节, 压缩率为 %.1f%%", diff, ratio);
-//                } else {
-//                    info = String.format("文件大小增加了 %s 字节, 压缩率为 %.1f%%", -diff, ratio);
-//                }
-//            } else {
-//                huffmanCompressor.decompress(in, out);
-//                // 解压缩统计
-//                long diff = inFile.length() - outFile.length();
-//                if (diff > 0) {
-//                    info = String.format("文件大小减小了 %s 字节", diff);
-//                } else {
-//                    info = String.format("文件大小增加了 %s 字节", -diff);
-//                }
-//            }
-//            long endTime = System.currentTimeMillis();
-//
-//            // 打印统计信息
-//            if (verbose) {
-//                // 压缩/解压缩信息
-//                System.out.println(info);
-//                // 耗时
-//                System.out.println(String.format("耗时 %.3f 秒", (endTime - startTime) / 1000.0));
-//                System.out.println();
-//            }
-//
-//            // 关闭流
-//            in.close();
-//            out.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+//        HuffmanCompressor compressor = new HuffmanCompressor();
+//        InputStream is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1");
+//        OutputStream os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.compress");
+//        long startTime = System.currentTimeMillis();
+//        compressor.compress(is, os);
+//        long endTime = System.currentTimeMillis();
+//        // 压缩耗时
+//        System.out.println(String.format("压缩耗时 %.3f 秒", (endTime - startTime) / 1000.0));
+//        is.close();os.close();
+//        is = new FileInputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.compress");
+//        os = new FileOutputStream("C:\\Users\\LTChen\\Desktop\\my-errors.2017-10-23-1.decompress");
+//        long startTime2 = System.currentTimeMillis();
+//        compressor.decompress(is, os);
+//        long endTime2 = System.currentTimeMillis();
+//        // 解压缩耗时
+//        System.out.println(String.format("解压缩耗时 %.3f 秒", (endTime2 - startTime2) / 1000.0));
+//        is.close();os.close();
+        // 检查参数
+        if (args.length != 3) {
+            usage();
+        }
+
+        // Parse flags
+        boolean verbose = args[0].contains("v");
+        boolean showProgress = args[0].contains("p");
+        boolean compress = args[0].contains("c");
+        boolean decompress = args[0].contains("d");
+        // 压缩参数和解压缩参数不可同时出现
+        if (!(compress ^ decompress)) {
+            usage();
+        }
+
+        try {
+            // 输入输出文件
+            File inFile = new File(args[1]);
+            FileInputStream in = new FileInputStream(inFile);
+            File outFile = new File(args[2]);
+            FileOutputStream out = new FileOutputStream(outFile);
+
+            // 霍夫曼压缩器
+            HuffmanCompressor huffmanCompressor = new HuffmanCompressor(inFile.getPath(), inFile.getName(), inFile.length(), showProgress);
+            String info;
+
+            // 压缩/解压缩
+            long startTime = System.currentTimeMillis();
+            if (compress) {
+                huffmanCompressor.compress(in, out);
+                // 压缩统计
+                long diff = inFile.length() - outFile.length();
+                double ratio = (outFile.length() / inFile.length()) * 100;
+                if (diff > 0) {
+                    info = String.format("文件大小减小了 %s 字节, 压缩率为 %.1f%%", diff, ratio);
+                } else {
+                    info = String.format("文件大小增加了 %s 字节, 压缩率为 %.1f%%", -diff, ratio);
+                }
+            } else {
+                huffmanCompressor.decompress(in, out);
+                // 解压缩统计
+                long diff = inFile.length() - outFile.length();
+                if (diff > 0) {
+                    info = String.format("文件大小减小了 %s 字节", diff);
+                } else {
+                    info = String.format("文件大小增加了 %s 字节", -diff);
+                }
+            }
+            long endTime = System.currentTimeMillis();
+
+            // 打印统计信息
+            if (verbose) {
+                // 压缩/解压缩信息
+                System.out.println(info);
+                // 耗时
+                System.out.println(String.format("耗时 %.3f 秒", (endTime - startTime) / 1000.0));
+                System.out.println();
+            }
+
+            // 关闭流
+            in.close();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

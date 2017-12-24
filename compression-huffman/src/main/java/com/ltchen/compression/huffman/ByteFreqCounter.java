@@ -1,6 +1,7 @@
 package com.ltchen.compression.huffman;
 
 import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -16,21 +17,34 @@ public class ByteFreqCounter {
      */
     private static final int BYTE_NUMBER = 256;
     private static final int[] byteFreqs = new int[BYTE_NUMBER];
-    private static final int BUFFER_SIZE = 1024;
+    private static final int BUFFER_SIZE = 8196;
     private static final byte[] buffer = new byte[BUFFER_SIZE];
 
+    /**
+     * 统计输入流中的字节频次
+     * @param is 输入流
+     * @throws IOException
+     */
     public ByteFreqCounter(InputStream is) throws IOException {
         // 记录读入 buffer 的字节个数
         int number;
         DataInputStream dis = new DataInputStream(is);
         while ((number = dis.read(buffer)) != -1) {
             for (int i = 0; i < number; i++) {
-                // 统计字节出现的频次(byte 转换为无符号 byte)
-                byteFreqs[buffer[i] & 0xFF] += 1;
+                // 统计字节出现的频次(转换为无符号 byte)
+                byteFreqs[buffer[i] & 0xFF]++;
             }
         }
     }
 
+    /**
+     * 统计文件中的字节频次
+     * @param filePath 文件路径
+     * @throws IOException
+     */
+    public ByteFreqCounter(String filePath) throws IOException {
+        this(new FileInputStream(filePath));
+    }
     /**
      * 返回字节统计
      * @return
