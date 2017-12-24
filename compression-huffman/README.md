@@ -1,7 +1,7 @@
 ### 使用方法
 
 ```
-java HuffmanCompressor -vpcd [in-file] [out-file]
+java HuffmanCompressor -vpcd [inFilePath] [outFilePath]
 ```
 
 |选项|描述|
