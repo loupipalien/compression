@@ -1,6 +1,7 @@
 package com.ltchen.compression.deflate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -37,7 +38,7 @@ public class HuffmanTable {
         }
         // 11000101 -> 110010000
         nextCode = (nextCode + 2) << 1;
-        for (int i = 144; i < 255; i++) {
+        for (int i = 144; i <= 255; i++) {
             LIT.codes[i] = nextCode++;
             LIT.codeLens[i] = 9;
         }
@@ -69,13 +70,108 @@ public class HuffmanTable {
         codeLens = new int[codeCount];
     }
 
-    public static List<Integer> packCodeLens(int[] litCodeLens, int[] distCodeLens) {
-        List<Integer> lengths = new ArrayList<Integer>();
+    /**
+     *
+     * @param litCodeLens literal 生成的霍夫曼码表中所有码长度序列
+     * @param distCodeLens distance 生成的霍夫曼码表中所有码长度序列
+     * @return
+     */
+    public static List<Integer> packCodeLengths(int[] litCodeLens, int[] distCodeLens) {
+        List<Integer> lengths = new ArrayList<>();
+        // 压缩 literal 生成的霍夫曼码表中所有码长度序列
+        pack(lengths, litCodeLens);
+        // 压缩 distance 生成的霍夫曼码表中所有码长度序列
+        pack(lengths, distCodeLens);
         return lengths;
     }
 
+    /**
+     * 压缩码长度的序列
+     * 见 RFC 1951, 3.2.7 章节 (https://www.ietf.org/rfc/rfc1951.txt)
+     * @param lengths  存放压缩后的码长度序列
+     * @param codeLens 要压缩的码长度序列
+     */
     private static void pack(List<Integer> lengths, int[] codeLens) {
+        int n = codeLens.length;
 
+        /*
+         * 游程编码
+         */
+        // 游程重复的长度
+        int runLen = 1;
+        // 获取第一个码字的长度
+        int last = codeLens[0];
+        for (int i = 1; i < n; i++) {
+            if (i < n && last == codeLens[i]) {
+                runLen++;
+            } else {
+                // 写入码的长度值
+                lengths.add(last);
+                // 减去 last 重复的 1 次
+                runLen--;
+                if (last == 0) {
+                    // 对应的码没有被使用时
+                    int j = 138;
+                    // 0 重复 11 - 138 次时的编码
+                    while (j >= 11) {
+                        if ((runLen - j) >= 0) {
+                            // 填入标记
+                            lengths.add(18);
+                            // 填入重复次数
+                            lengths.add(j - 11);
+                            runLen -= j;
+                        } else {
+                            j--;
+                        }
+                    }
+                    // 0 重复 3 - 10 次时的编码
+                    while (j >= 3) {
+                        if ((runLen - j) >= 0) {
+                            lengths.add(17);
+                            lengths.add(j - 3);
+                            runLen -= j;
+                        } else {
+                            j--;
+                        }
+                    }
+                } else {
+                    // 对应的码被使用时
+                    int j = 6;
+                    // 重复 3 - 6 次时, 少于 3 次编码无助于压缩 (不包括 last)
+                    while (j >= 3) {
+                        if((runLen - j) >= 0) {
+                            lengths.add(16);
+                            lengths.add(j - 3);
+                            runLen -= j;
+                        } else {
+                            j--;
+                        }
+                    }
+                }
+                // 当码长重复次数少于 3 次 (不包括 last)
+                while (runLen > 0) {
+                    lengths.add(last);
+                    runLen--;
+                }
+                // 获取下一个长度值, 继续向后
+                if (i < n) {
+                    last = codeLens[i];
+                    runLen = 1;
+                }
+            }
+        }
     }
 
+    @Override
+    public String toString() {
+        return "HuffmanTable{" +
+                "codes=" + Arrays.toString(codes) +
+                ", codeLens=" + Arrays.toString(codeLens) +
+                '}';
+    }
+
+    public static void main(String[] args) {
+        System.out.println(LIT);
+        System.out.println(DIST);
+    }
 }

@@ -45,9 +45,7 @@ public class ByteUtil {
     }
 
     public static void main(String[] args) {
-        System.out.println((byteToBits(new Byte("2"))));
-        System.out.println(Byte.parseByte("010", 2));
-        System.out.println(bitsToByte("010"));
-        System.out.println(Byte.toString(new Byte("2")));
+        System.out.println(Integer.toBinaryString(Integer.MAX_VALUE));
+        System.out.println(Integer.toBinaryString(Integer.MIN_VALUE));
     }
 }

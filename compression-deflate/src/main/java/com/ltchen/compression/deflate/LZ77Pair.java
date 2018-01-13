@@ -19,12 +19,12 @@ public class LZ77Pair {
     public static final int[] LEN_BITS = new int[29];
     static {
         // 生成 distance 符号范围
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i <= 3; i++) {
             DIST_LOWS[i] = i + 1;
             DIST_HIGHS[i] = DIST_LOWS[i];
             DIST_BITS[i] = 0;
         }
-        for (int i = 4; i < 30; i++) {
+        for (int i = 4; i <= 29; i++) {
             int j = (i - 4) % 2;
             int k = (i - 4) / 2;
             DIST_LOWS[i] = ((j + 2) << (k + 1)) + 1;
@@ -32,12 +32,12 @@ public class LZ77Pair {
             DIST_BITS[i] = k + 1;
         }
         // 生成 length 符号范围
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i <= 7; i++) {
             LEN_LOWS[i] = i + 3;
             LEN_HIGHS[i] = LEN_LOWS[i];
             LEN_BITS[i] = 0;
         }
-        for (int i = 8; i < 28; i++) {
+        for (int i = 8; i <= 27; i++) {
             // 8 - 27 每 4 位增加一个 bits 数, 即区间增大两倍
             int j = (i - 8) % 4;
             int k = (i - 8) / 4;

@@ -150,7 +150,7 @@ public class LZ77Window {
             bytes[i]  =  dict[x];
             x = (x + 1) & mask;
             // 重定位到起始位置, 循环拷贝
-            if (start == pos) {
+            if (x == pos) {
                 x = start;
             }
         }
