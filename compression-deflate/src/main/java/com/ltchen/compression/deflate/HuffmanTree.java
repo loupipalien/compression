@@ -152,6 +152,33 @@ public class HuffmanTree {
 
     }
 
+    /**
+     * 将霍夫曼树转化为霍夫曼表, 按字节顺序分配码和码长度, 未出现的字节默认是 0, 后续可以用 codeLens 重建霍夫曼树
+     * @return
+     */
+    public HuffmanTable getTable() {
+        HuffmanTable table = new HuffmanTable(codeCount);
+        int[] codes = table.codes;
+        int[] codeLens = table.codeLens;
+
+        // 遍历霍夫曼树, 为每个叶子节点分配码 (从最小的码开始分配)
+        int nextCode = 0;
+        int lastShift = 0;
+        for (Integer depth : depthMap.keySet()) {
+            nextCode <<= (depth - lastShift);
+            // 保存上一次转换的层级
+            lastShift = depth;
+            List<LeafNode> leaves = depthMap.get(depth);
+            // 给叶子的值排序
+            leaves.sort((LeafNode node1, LeafNode node2) -> node1.value - node2.value);
+            // 分配码
+            for (LeafNode leaf : leaves) {
+                codes[leaf.value] = nextCode++;
+                codeLens[leaf.value] = depth;
+            }
+        }
+        return table;
+    }
 
     abstract class Node implements Comparable<Node> {
         /**

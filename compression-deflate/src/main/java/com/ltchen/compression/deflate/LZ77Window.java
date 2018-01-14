@@ -50,7 +50,7 @@ public class LZ77Window {
     public LZ77Window(int size) {
         // 使用 int 值比特队列中 1 的个数判断
         if (Integer.bitCount(size) != 1) {
-            throw new AssertionError("窗口大小必须为 2 次方");
+            throw new AssertionError("窗口大小必须为 2 次方!");
         }
         maxSize = size;
         mask = maxSize - 1;
@@ -92,7 +92,7 @@ public class LZ77Window {
     }
 
     /**
-     * 在之前的字节中查找与 bytes 相同的串, 返回一个 LZ77Pair 对象
+     * 在滑动窗口中查找与 bytes 中相同的串, 返回一个 LZ77Pair 对象
      * @param bytes 字节数组
      * @param off 起始偏移
      * @param len 查找的字节数
@@ -129,7 +129,7 @@ public class LZ77Window {
             }
             // 当大于最小匹配时返回第一个匹配的 LZ77Pair
             if (matchLen >= MAX_MATCH) {
-                return new LZ77Pair(i, matchLen);
+                return new LZ77Pair(matchLen, i);
             }
         }
         return null;
