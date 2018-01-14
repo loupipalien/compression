@@ -20,7 +20,11 @@ public class Deflater {
     /**
      * 数据集最后块的标记符
      */
-    private static int BFINAL = 0;
+    private final static int BFINAL = 1;
+    /**
+     * 数据集非最后块的标记符
+     */
+    private final static int NON_BFINAL = 0;
 
     /**
      * 压缩模式: 00-无压缩, 01-固定霍夫曼码, 10-动态霍夫曼码, 11-保留 (错误)
@@ -81,21 +85,17 @@ public class Deflater {
         // 最大为 BUFFER_SIZE, 即 2^16
         int len;
         while ((len = in.read(buffer, 0, BUFFER_SIZE)) > 0) {
+            // TODO 显示进度
 
-            // 将之前的块写出
+            // 将上一次处理的块写出
             if (bos.getCount() > 0) {
-                byte[] bytes = baos.toByteArray();
-                // 写出最后块的标记符
-                out.writeBits(BFINAL, 1);
-                // 写出块编码类型
-                out.writeBits(BTYPE, 2);
-                if (BTYPE == 0) {
-                    out.flushBits();
-                }
-                // TODO
+                // 写出数据块
+                writeBlock(NON_BFINAL, baos.toByteArray());
+                // 重置
+                baos.reset();
             }
 
-            //
+            // TODO  冗余循环校验
 
             /*
              * 无压缩写出
@@ -116,7 +116,7 @@ public class Deflater {
             int[] distFreq = new int[DISTANCE_COUNT];
             int[] clenFreq = new int[CODE_LENGTH_COUNT];
 
-            //
+            // 查询匹配串, 并统计 literal, distance 的频次
             for (int i = 0; i < len; i++) {
                 LZ77Pair pair = null;
                 if (ENABLE_LZ77) {
@@ -142,7 +142,6 @@ public class Deflater {
             // 生成霍夫曼码
             int[] litCodes, litCodeLens, distCodes, distCodeLens, clenCodes, clenCodeLens;
             List<Integer> clens;
-
             // 树限制深度为 15, 不懂 PK 为何这样设计 (但大神总有大神的理由...崇拜中)
             int treeLimitDepth = 15;
             if (BTYPE == 2) {
@@ -256,10 +255,45 @@ public class Deflater {
             bos.writeBitsR(litCodes[END_OF_BLOCK], litCodeLens[END_OF_BLOCK]);
             remainBits = bos.bitPos;
             bos.flushBits();
-
-
         }
-        return 0L;
+
+        // 写出最后一个块
+        writeBlock(BFINAL, baos.toByteArray());
+        // 刷出
+        out.flushBits();
+        // 返回一共写出多少字节
+        return out.getCount();
+    }
+
+
+    /**
+     * 将压缩数据块写出
+     * @param block 压缩数据块
+     * @throws IOException
+     */
+    private void writeBlock(int bFinal, byte[] block) throws IOException {
+        // 写出最后块的标记符
+        out.writeBits(bFinal, 1);
+        // 写出块编码类型
+        out.writeBits(BTYPE, 2);
+        // TODO ???
+        if (BTYPE == 0) {
+            out.flushBits();
+        }
+        // 检查字节边界是否对齐, 即 BitOutPutStream 中 bitPos 为 0 且 remainBits 为 0
+        if (out.bitPos == 0 && remainBits == 0) {
+            out.write(block);
+        } else {
+            for (int i = 0; i < block.length; i++) {
+                if (i == block.length - 1 && remainBits > 0) {
+                    // 只写出最后一个字节的低 remainBits 个字符, 因为前 8 - remainBits 是补的 1
+                    out.writeBits(block[i], remainBits);
+                } else {
+                    // 每次写出一个字节
+                    out.writeBitsR(block[i], 8);
+                }
+            }
+        }
     }
 
     /**
