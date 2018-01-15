@@ -55,30 +55,39 @@ public class Deflater {
      */
     private static final int[] CODE_LENGTH_ORDER = {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
-    private static final int LITEREAL_COUNT = 286;
+    private static final int LITERAL_COUNT = 286;
     private static final int DISTANCE_COUNT = 30;
     private static final int CODE_LENGTH_COUNT = 19;
 
     /**
-     * 比特输出流
+     * 比特输入流
      */
     private BitInputStream in;
     /**
-     * 比特输入流
+     * 比特输出流
      */
     private BitOutputStream out;
     /**
-     * 当前块超过字节边界的比特数
+     *  循环冗余校验
+     */
+    private CRC crc;
+    /**
+     * 处理块超过字节边界的比特数
      */
     private int remainBits;
+
+    public Deflater(BitInputStream in, BitOutputStream out) {
+        this.in = in;
+        this.out = out;
+        crc = new CRC();
+        remainBits = 0;
+    }
 
     public long process() throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         BitOutputStream bos = new BitOutputStream(baos);
 
-        /**
-         * 创建缓冲区和滑动窗口
-         */
+        // 创建缓冲区和滑动窗口
         byte[] buffer = new byte[BUFFER_SIZE];
         LZ77Window window = new LZ77Window(WINDOW_SIZE);
 
@@ -112,7 +121,7 @@ public class Deflater {
 
             // 初始化
             LZ77Pair[] pairs = new LZ77Pair[len];
-            int[] litFreq = new int[LITEREAL_COUNT];
+            int[] litFreq = new int[LITERAL_COUNT];
             int[] distFreq = new int[DISTANCE_COUNT];
             int[] clenFreq = new int[CODE_LENGTH_COUNT];
 
@@ -191,7 +200,7 @@ public class Deflater {
             // debug 时打印 litCodes, distCodes, clenCodes
             if (DEBUG) {
                 System.out.println("literal codes");
-                printCodes(LITEREAL_COUNT, litCodes, litCodeLens);
+                printCodes(LITERAL_COUNT, litCodes, litCodeLens);
                 System.out.println("distance codes");
                 printCodes(DISTANCE_COUNT, distCodes, distCodeLens);
                 System.out.println("code length codes");
@@ -204,7 +213,7 @@ public class Deflater {
                  * 见 RFC 1951, 3.2.7 章节 (https://www.ietf.org/rfc/rfc1951.txt)
                  */
                 // 写出 litCodes 的可变的个数
-                bos.writeBits(LITEREAL_COUNT - 257, 5);
+                bos.writeBits(LITERAL_COUNT - 257, 5);
                 // 写出 distCodes 的可变的个数
                 bos.writeBits(DISTANCE_COUNT - 1, 5);
                 // 写出 clenCodes 的可变个数
@@ -302,7 +311,7 @@ public class Deflater {
      * @param codes 码序列
      * @param codeLens 码长度序列
      */
-    private static void printCodes(int count, int[] codes, int[]codeLens) {
+    private void printCodes(int count, int[] codes, int[]codeLens) {
         for (int i = 0; i < count; i++) {
             if (codeLens[i] > 0) {
                 String code = String.format("%" + codeLens[i] + "s", Integer.toBinaryString(codes[i]));
@@ -310,6 +319,14 @@ public class Deflater {
                 System.out.println(i + "\t" + code);
             }
         }
+    }
+
+    /**
+     * 获取 CRC 校验值
+     * @return
+     */
+    public int getCRCValue() {
+        return crc.getValue();
     }
 
     public static void main(String[] args) {

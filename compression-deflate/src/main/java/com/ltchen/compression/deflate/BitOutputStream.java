@@ -60,7 +60,7 @@ public class BitOutputStream {
     }
 
     /**
-     * 写出一个字节
+     * 写出 byte, 一个字节
      * @param val 值
      * @throws IOException
      */
@@ -70,7 +70,7 @@ public class BitOutputStream {
     }
 
     /**
-     * 写出两个字节
+     * 写出 short, 两个字节
      * @param val 值
      * @throws IOException
      */
@@ -80,15 +80,27 @@ public class BitOutputStream {
     }
 
     /**
-     * 写出四个字节
+     * 写出 int, 四个字节
      * @param val 值
      * @throws IOException
      */
-    public void wirteInt(int val) throws IOException {
+    public void writeInt(int val) throws IOException {
         writeByte(val);
         writeByte(val >> 8);
         writeByte(val >> 16);
         writeByte(val >> 24);
+    }
+
+    /**
+     * 写出无符号 int, 四个字节
+     * @param val
+     * @throws IOException
+     */
+    public void writeUnsignedInt(long val) throws IOException {
+        writeByte((byte) (val));
+        writeByte((byte) (val >> 8));
+        writeByte((byte) (val >> 16));
+        writeByte((byte) (val >> 24));
     }
 
     /**

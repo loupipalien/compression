@@ -51,7 +51,7 @@ public class HuffmanCompressor implements Compressor{
         if (showProgress) {
             long percent = readBytes * 100 / fileSize;
             if (percent != lastPercent) {
-                System.out.println(String.format("%s: 处理进度 %d%%", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),percent));
+                System.out.println(String.format("%s: 处理进度 %d%%", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()), percent));
                 lastPercent = percent;
             }
         }
