@@ -212,9 +212,9 @@ public class Deflater {
                 /*
                  * 见 RFC 1951, 3.2.7 章节 (https://www.ietf.org/rfc/rfc1951.txt)
                  */
-                // 写出 litCodes 的可变的个数
+                // 写出 litCodes 的可变个数
                 bos.writeBits(LITERAL_COUNT - 257, 5);
-                // 写出 distCodes 的可变的个数
+                // 写出 distCodes 的可变个数
                 bos.writeBits(DISTANCE_COUNT - 1, 5);
                 // 写出 clenCodes 的可变个数
                 bos.writeBits(CODE_LENGTH_COUNT - 4, 4);
