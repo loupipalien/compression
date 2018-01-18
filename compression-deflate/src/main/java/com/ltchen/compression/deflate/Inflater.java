@@ -179,7 +179,7 @@ public class Inflater {
         for (int i = 0; i < HCLEN; i++) {
             clenCodes[CODE_LENGTH_ORDER[i]] = in.readBits(3);
         }
-        // 构建 clen
+        // 构建 clenCodes
     }
 
     private int readCode(List<Integer> lenCodes, Map<Integer, List<Integer>> lenCodeMap) {
