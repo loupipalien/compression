@@ -32,9 +32,9 @@ public class HuffmanTree {
     /**
      * 从给予频次数组 freqs 中构建一个深度小于 limit 的霍夫曼树
      * @param freqs 频次数组
-     * @param limit 深度限制
+     * @param limitDepth 深度限制
      */
-    public HuffmanTree(int[] freqs, int limit) {
+    public HuffmanTree(int[] freqs, int limitDepth) {
         // 初始化
         codeCount = freqs.length;
         depthMap = new TreeMap<Integer,List<LeafNode>>();
@@ -68,7 +68,7 @@ public class HuffmanTree {
         traverse(root);
 
         // 平衡霍夫曼树到限制深度
-        while (maxDepth > limit) {
+        while (maxDepth > limitDepth) {
             // 在最深的一层获取一个叶子节点(最后一层必然有偶数个叶子节点)
             LeafNode leafA = depthMap.get(maxDepth).get(0);
             // 获取 leafA 的父节点

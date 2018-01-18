@@ -1,8 +1,7 @@
 package com.ltchen.compression.deflate;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author : ltchen
@@ -83,8 +82,8 @@ public class Inflater {
     private List<Integer> distCodes;
     private Map<Integer, List<Integer>> distCodeMap;
 
-    private List<Integer> lenCodes;
-    private Map<Integer, List<Integer>> lenCodeMap;
+    private List<Integer> clenCodes;
+    private Map<Integer, List<Integer>> clenCodeMap;
 
     private int HLIT;
     private int HDIST;
@@ -174,20 +173,135 @@ public class Inflater {
         // 读入 clenCodes 的可变个数, 并计算 HCLEN
         HCLEN = 4 + in.readBits(4);
 
-        // 读入 clenCodes
-        int[] clenCodes = new int[CODE_LENGTH_COUNT];
+        // 读入 clenCodeLens
+        int[] clenCodeLens = new int[CODE_LENGTH_COUNT];
         for (int i = 0; i < HCLEN; i++) {
-            clenCodes[CODE_LENGTH_ORDER[i]] = in.readBits(3);
+            clenCodeLens[CODE_LENGTH_ORDER[i]] = in.readBits(3);
         }
         // 构建 clenCodes
+        clenCodes = buildCodes(clenCodeLens);
+        clenCodeMap = buildCodeMap(clenCodes, clenCodeLens);
+
+        // 解压 literal/distance 的码的长度序列
+        int[] lengths = new int[HLIT + HDIST];
+        for (int i = 0; i < lengths.length; i++) {
+            int code = readCode(clenCodes, clenCodeMap);
+            if (code < 16) {
+                lengths[i] = code;
+            } else {
+                int n = 0;
+                if (code == 16) {
+                    // 16 标识前一个 code 有重复 3 - 6 次
+                    n = 3 + in.readBits(2);
+                }
+                if (code == 17) {
+                    // 17 标识 code = 0 重复 3 - 10 次
+                    n = 3 + in.readBits(3);
+                }
+                if (code == 18)  {
+                    // 18 标识 code = 0 重复 11 - 138 次
+                    n = 11 + in.readBits(7);
+                }
+                for (int j = 0; j < n; j++) {
+                    lengths[i + j] = lengths[i - 1];
+                }
+                // 向后滑动
+                i += (n - 1);
+            }
+        }
+
+        // 获取 litCodeLens
+        int[] litCodeLens = new int[LITERAL_COUNT];
+        System.arraycopy(lengths, 0, litCodeLens, 0, HLIT);
+        // 构建 litCodes
+        litCodes = buildCodes(litCodeLens);
+        litCodeMap = buildCodeMap(litCodes, litCodeLens);
+
+        // 获取 distCodeLens
+        int[] distCodeLens = new int[DISTANCE_COUNT];
+        System.arraycopy(lengths, HLIT, distCodeLens, 0, HDIST);
+        // 构建 distCodes
+        distCodes = buildCodes(distCodeLens);
+        distCodeMap = buildCodeMap(distCodes, distCodeLens);
     }
 
-    private int readCode(List<Integer> lenCodes, Map<Integer, List<Integer>> lenCodeMap) {
+    /**
+     * 利用码长度构建码
+     * @param codeLens 码长度的序列
+     * @return
+     */
+    private List<Integer> buildCodes(int[] codeLens) {
+        int n = codeLens.length;
+        Integer[] codes = new Integer[n];
+        // 找出被使用的码的长度
+        Set<Integer> lengths = new TreeSet<>();
+        for (int i = 0; i < n; i++) {
+            if (codeLens[i] > 0) {
+                lengths.add(codeLens[i]);
+            }
+        }
+        // 构建码
+        int nextCode = 0;
+        int lastShift = 0;
+        for (Integer length : lengths) {
+            nextCode <<= (length - lastShift);
+            lastShift = length;
+            // 转换为码
+            for (int i = 0; i < n; i++) {
+                if (codeLens[i] == length) {
+                    codes[i] = nextCode++;
+                }
+            }
+        }
+        return Arrays.asList(codes);
+    }
+
+    /**
+     * 利用码和码的长度构建码长度与码序列的映射
+     * @param codes 码序列
+     * @param codeLens 码长度
+     * @return
+     */
+    private Map<Integer,List<Integer>> buildCodeMap(List<Integer> codes, int[] codeLens) {
+        int n = codeLens.length;
+        Map<Integer,List<Integer>> codeMap = new TreeMap<>();
+        // 构建 codeMap
+        for (int i = 0; i < n; i++) {
+            int length = codeLens[i];
+            if (length > 0) {
+                List<Integer> codeList = codeMap.get(length);
+                if (codeList == null) {
+                    codeList = new ArrayList<>();
+                    codeMap.put(codeLens[i], codeList);
+                }
+                codeList.add(codes.get(i));
+            }
+        }
+        return codeMap;
+    }
+
+    private int readCode(List<Integer> lenCodes, Map<Integer, List<Integer>> lenCodeMap) throws IOException {
         int code = 0;
         int codeLen = 0;
         int index = -1;
 
-        return 0;
+        do {
+            // 因为树最大高度限制为 15, 所以 codeLen 的最大值为 14
+            if (codeLen >= 15) {
+                throw new AssertionError("找不到对应的码");
+            }
+            // 读取比特转化为
+            code <<= 1;
+            code |= in.readBits(1);
+            codeLen++;
+            // 检查是否匹配到码
+            List<Integer> codeList = lenCodeMap.get(codeLen);
+            if (codeList != null) {
+                index = codeList.indexOf(code);
+            }
+        } while (index != -1);
+        // 此码的下标即为经过游程编码后的值
+        return lenCodes.indexOf(code);
     }
 
 
