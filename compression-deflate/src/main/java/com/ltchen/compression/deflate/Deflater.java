@@ -311,7 +311,7 @@ public class Deflater {
      * @param codes 码序列
      * @param codeLens 码长度序列
      */
-    protected static void printCodes(int count, int[] codes, int[]codeLens) {
+    protected void printCodes(int count, int[] codes, int[]codeLens) {
         for (int i = 0; i < count; i++) {
             if (codeLens[i] > 0) {
                 String code = String.format("%" + codeLens[i] + "s", Integer.toBinaryString(codes[i]));

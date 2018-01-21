@@ -16,23 +16,23 @@ public class DeflateCompressor implements Compressor {
     /**
      * 见 RFC 1952, 2.2 章节 (https://www.ietf.org/rfc/rfc1952.txt)
      * +---+---+---+---+---+---+---+---+---+---+========//========+===========//==========+---+---+---+---+---+---+---+---+
-     * |ID1|ID2| CM|FLG|     MTIME     |XFL| OS|   额外的头字段   |       压缩的数据      |     CRC     |     ISIZE     |
+     * |ID1|ID2| CM|FLG|     MTIME     |XFL| OS|    额外的头字段    |        压缩的数据       |      CRC      |     ISIZE     |
      * +---+---+---+---+---+---+---+---+---+---+========//========+===========//==========+---+---+---+---+---+---+---+---+
      */
 
     /**
      * 第一个魔法值: 0x1f
      */
-    private final static int FIRST_MAGIC_NUMBER = 31;
+    private final static int ID1 = 31;
     /**
      * 第二个魔法值: 0x8b
      */
-    private final static int SECOND_MAGIC_NUMBER = 139;
+    private final static int ID2 = 139;
 
     /**
      * 压缩方法标识, 8 既是 deflate 压缩
      */
-    private final static int COMPRESSION_METHOD = 8;
+    private final static int CM = 8;
 
     /**
      * 头标识标志
@@ -45,15 +45,15 @@ public class DeflateCompressor implements Compressor {
      * bit 6   reserved
      * bit 7   reserved
      */
-    private static int FLG;
+    private static int FLG = 0;
     /**
      * 头标识
      */
-    public static int FTEXT;
-    public static int FHCRC;
-    public static int FEXTRA;
-    public static int FNAME;
-    public static int FCOMMENT;
+    public final static int FTEXT = 1;
+    public final static int FHCRC = 2;
+    public final static int FEXTRA = 4;
+    public final static int FNAME = 8;
+    public final static int FCOMMENT = 16;
     /**
      * 修改时间
      */
@@ -109,15 +109,14 @@ public class DeflateCompressor implements Compressor {
 
         try {
             // 写出文件头
-            bos.writeByte(FIRST_MAGIC_NUMBER);
-            bos.writeByte(SECOND_MAGIC_NUMBER);
-            bos.writeByte(COMPRESSION_METHOD);
+            bos.writeByte(ID1);
+            bos.writeByte(ID2);
+            bos.writeByte(CM);
+            bos.writeByte(FLG);
             // TODO 后续处理文件头格式
             for (int i = 0; i < 6; i++) {
                 bos.writeByte(0);
             }
-            bos.write(fileName.getBytes());
-            bos.writeByte(0);
 
             // 压缩数据并写出
             Deflater deflater = new Deflater(bis, bos);
@@ -134,7 +133,43 @@ public class DeflateCompressor implements Compressor {
 
     @Override
     public void decompress(InputStream in, OutputStream out) {
+        BitInputStream bis = new BitInputStream(in);
+        BitOutputStream bos = new BitOutputStream(out);
 
+        try {
+            // 读取文件头中的魔法值并校验
+            int id1 = bis.readByte();
+            int id2 = bis.readByte();
+            if (id1 != ID1 || id2 != ID2) {
+                throw new AssertionError("非法的魔法值!");
+            }
+            // 读取文件头中的压缩方法标记并校验
+            int cm = bis.readByte();
+            if (cm != CM) {
+                throw new AssertionError("不支持的压缩方法!");
+            }
+            // 读取文件头中的文件标记
+            int flg = bis.readByte();
+            if ((flg & (FTEXT | FHCRC | FEXTRA | FNAME | FCOMMENT)) != 0) {
+                throw new AssertionError("不支持的扩展标记");
+            }
+            // 跳过文件头后续 6 个字节
+            bis.skipBytes(6);
+
+            // 解压数据并写出
+            Inflater inflater = new Inflater(bis, bos);
+            inflater.process();
+
+            // 读取文件尾
+            int crc = bis.readInt();
+            if (crc != inflater.getCRCValue()) {
+                throw new AssertionError(String.format("循环冗余校验失配, 期望值 = %08X, 实际值 = %08X", inflater.getCRCValue(), crc));
+            }
+            bis.readUnsignedInt();
+            // TODO 显示处理进度
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public DeflateCompressor(String filePath, String fileName, long fileSize, boolean showProgress) {
@@ -155,85 +190,4 @@ public class DeflateCompressor implements Compressor {
         }
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
-        // 检查参数
-        if (args.length != 3) {
-            usage();
-        }
-
-        // Parse flags
-        boolean verbose = args[0].contains("v");
-        boolean showProgress = args[0].contains("p");
-        boolean compress = args[0].contains("c");
-        boolean decompress = args[0].contains("d");
-        // 压缩参数和解压缩参数不可同时出现
-        if (!(compress ^ decompress)) {
-            usage();
-        }
-
-        try {
-            // 输入输出文件
-            File inFile = new File(args[1]);
-            FileInputStream in = new FileInputStream(inFile);
-            File outFile = new File(args[2]);
-            FileOutputStream out = new FileOutputStream(outFile);
-
-            // 霍夫曼压缩器
-            DeflateCompressor deflateCompressor = new DeflateCompressor(inFile.getPath(), inFile.getName(), inFile.length(), showProgress);
-            String info;
-
-            // 压缩/解压缩
-            long startTime = System.currentTimeMillis();
-            if (compress) {
-                deflateCompressor.compress(in, out);
-                // 压缩统计
-                long diff = inFile.length() - outFile.length();
-                double ratio = ((double) outFile.length() / (double)inFile.length()) * 100;
-                if (diff > 0) {
-                    info = String.format("文件大小减小了 %s 字节, 压缩率为 %.1f%%", diff, ratio);
-                } else {
-                    info = String.format("文件大小增加了 %s 字节, 压缩率为 %.1f%%", -diff, ratio);
-                }
-            } else {
-                deflateCompressor.decompress(in, out);
-                // 解压缩统计
-                long diff = inFile.length() - outFile.length();
-                if (diff > 0) {
-                    info = String.format("文件大小减小了 %s 字节", diff);
-                } else {
-                    info = String.format("文件大小增加了 %s 字节", -diff);
-                }
-            }
-            long endTime = System.currentTimeMillis();
-
-            // 打印统计信息
-            if (verbose) {
-                // 压缩/解压缩信息
-                System.out.println(info);
-                // 耗时
-                System.out.println(String.format("耗时 %.3f 秒", (endTime - startTime) / 1000.0));
-                System.out.println();
-            }
-
-            // 关闭流
-            in.close();
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 打印使用方法并退出
-     */
-    private static void usage() {
-        System.out.println("使用方法:");
-        System.out.println("\tjava HuffmanCompressor -vpcd [inFilePath] [outFilePath]");
-        System.out.println("选项:");
-        System.out.println("\t-v  显示详情");
-        System.out.println("\t-p  显示进度");
-        System.out.println("\t-c  压缩");
-        System.out.println("\t-d  解压缩");
-        System.exit(1);
-    }
 }

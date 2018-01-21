@@ -93,6 +93,15 @@ public class BitInputStream {
     }
 
     /**
+     * 读取输入流中四个字节
+     * @return 四个字节的无符号值
+     * @throws IOException
+     */
+    public long readUnsignedInt() throws IOException {
+        return (readInt() & 0xffffffffL);
+    }
+
+    /**
      * 跳过输入流中接下来的 n 个字节
      * @param n 被跳过的字节数
      * @return 实际跳过的字节数

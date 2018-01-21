@@ -89,6 +89,13 @@ public class Inflater {
     private int HDIST;
     private int HCLEN;
 
+    public Inflater(BitInputStream in, BitOutputStream out) {
+        this.in = in;
+        this.out = out;
+        crc = new CRC();
+        remainBits = 0;
+    }
+
     public long process() throws IOException {
         // 读取文件头标记
         int bFinal = in.readBits(1);
@@ -96,11 +103,20 @@ public class Inflater {
         // 处理压缩块数据块
         do {
             if (bType == 0) {
-                // TODO
+                // 清除文件头标记
+                in.clearBits();
+                // 处理未压缩数据块
+                processUnCompressedBlock();
             } else if (bType == 1) {
-                // TODO
+                // 加载固定霍夫曼码
+                loadFixedHuffmanCodes();
+                // 处理压缩数据块
+                processHuffmanCompressedBlock();
             } else if (bType == 2) {
-                // TODO
+                // 加载动态霍夫曼码
+                loadDynamicHuffmanCodes();
+                // 处理压缩数据块
+                processHuffmanCompressedBlock();
             } else {
                 throw new AssertionError("无效的数据块类型!");
             }
@@ -135,7 +151,7 @@ public class Inflater {
 
     private void processHuffmanCompressedBlock() throws IOException {
         while (true) {
-            int litCode = readCode(litCodes, litCodeMap);
+            int litCode = getCode(litCodes, litCodeMap);
 
             // 转换码后写出
             if (litCode < END_OF_BLOCK) {
@@ -153,7 +169,7 @@ public class Inflater {
                 int lenCode = litCode - 257;
                 int len = LZ77Pair.LEN_LOWS[lenCode] + in.readBits(LZ77Pair.LEN_EXTRA_BITS[lenCode]);
                 // 因为是长度, 后必是一个距离; 计算距离码并转换为距离值
-                int distCode = readCode(distCodes, distCodeMap);
+                int distCode = getCode(distCodes, distCodeMap);
                 int dist = LZ77Pair.DIST_LOWS[distCode] + in.readBits(LZ77Pair.DIST_EXTRA_BITS[distCode]);
                 // 从窗口中获取
                 byte[] bytes = window.getBytes(dist, len);
@@ -165,7 +181,26 @@ public class Inflater {
         }
     }
 
-    private void readCodes() throws IOException {
+    /**
+     * 加载固定霍夫曼码
+     */
+    private void loadFixedHuffmanCodes() {
+        // 构建 litCodeMap
+        litCodes = new ArrayList<>();
+        for (int i = 0; i < LITERAL_COUNT; i++) {
+            litCodes.add(HuffmanTable.LIT.codes[i]);
+        }
+        litCodeMap = buildCodeMap(litCodes, HuffmanTable.LIT.codeLens);
+
+        // 构建 distCodeMap
+        distCodes = new ArrayList<>();
+        for (int i = 0; i < DISTANCE_COUNT; i++) {
+            distCodes.add(HuffmanTable.DIST.codes[i]);
+        }
+        distCodeMap = buildCodeMap(distCodes, HuffmanTable.DIST.codeLens);
+    }
+
+    private void loadDynamicHuffmanCodes() throws IOException {
         // 读入 litCodes 的可变个数, 并计算 HLIT
         HLIT = 257 + in.readBits(5);
         // 读入 distCodes 的可变个数, 并计算 HDIST
@@ -185,7 +220,7 @@ public class Inflater {
         // 解压 literal/distance 的码的长度序列
         int[] lengths = new int[HLIT + HDIST];
         for (int i = 0; i < lengths.length; i++) {
-            int code = readCode(clenCodes, clenCodeMap);
+            int code = getCode(clenCodes, clenCodeMap);
             if (code < 16) {
                 lengths[i] = code;
             } else {
@@ -223,6 +258,32 @@ public class Inflater {
         // 构建 distCodes
         distCodes = buildCodes(distCodeLens);
         distCodeMap = buildCodeMap(distCodes, distCodeLens);
+
+        // debug 时打印 litCodes, distCodes, clenCodes
+        if (DEBUG) {
+            System.out.println("literal codes");
+            printCodes(LITERAL_COUNT, litCodes, litCodeLens);
+            System.out.println("distance codes");
+            printCodes(DISTANCE_COUNT, distCodes, distCodeLens);
+            System.out.println("code length codes");
+            printCodes(CODE_LENGTH_COUNT, clenCodes, clenCodeLens);
+        }
+    }
+
+    /**
+     * 打印码
+     * @param count 打印总数
+     * @param codes 码序列
+     * @param codeLens 码长度序列
+     */
+    protected void printCodes(int count, List<Integer> codes, int[]codeLens) {
+        for (int i = 0; i < count; i++) {
+            if (codeLens[i] > 0) {
+                String code = String.format("%" + codeLens[i] + "s", Integer.toBinaryString(codes.get(i)));
+                code = code.replace(' ', '0');
+                System.out.println(i + "\t" + code);
+            }
+        }
     }
 
     /**
@@ -280,7 +341,7 @@ public class Inflater {
         return codeMap;
     }
 
-    private int readCode(List<Integer> lenCodes, Map<Integer, List<Integer>> lenCodeMap) throws IOException {
+    private int getCode(List<Integer> lenCodes, Map<Integer, List<Integer>> lenCodeMap) throws IOException {
         int code = 0;
         int codeLen = 0;
         int index = -1;
@@ -304,6 +365,13 @@ public class Inflater {
         return lenCodes.indexOf(code);
     }
 
+    /**
+     * 获取 CRC 校验值
+     * @return
+     */
+    public int getCRCValue() {
+        return crc.getValue();
+    }
 
     public static void main(String[] args) {
         int i = 10;
