@@ -150,8 +150,8 @@ public class HuffmanTree {
             left.side = 0;
             this.left = left;
             // 初始右孩子
-            left.parent = this;
-            left.side = 1;
+            right.parent = this;
+            right.side = 1;
             this.right = right;
             // 此节点权重值为左孩子的权重值加右孩子权重值
             this.weight = left.weight + right.weight;

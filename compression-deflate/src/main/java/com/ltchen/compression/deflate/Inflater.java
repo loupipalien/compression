@@ -40,7 +40,7 @@ public class Inflater {
     /**
      * 窗口大小
      */
-    private static int WINDOW_SIZE = 256;
+    private static int WINDOW_SIZE = 32768;
 
     /**
      * 终止标记字符
@@ -89,11 +89,14 @@ public class Inflater {
     private int HDIST;
     private int HCLEN;
 
-    public Inflater(BitInputStream in, BitOutputStream out) {
+    private DeflateCompressor dc;
+
+    public Inflater(DeflateCompressor dc, BitInputStream in, BitOutputStream out) {
+        this.dc = dc;
         this.in = in;
         this.out = out;
         crc = new CRC();
-        remainBits = 0;
+        window = new LZ77Window(WINDOW_SIZE);
     }
 
     public long process() throws IOException {
@@ -120,6 +123,8 @@ public class Inflater {
             } else {
                 throw new AssertionError("无效的数据块类型!");
             }
+            // 更新处理进度
+            dc.updateProgress(in.getCount());
         } while (bFinal == 0);
         // 返回处理字节数
         return out.getCount();
@@ -347,7 +352,7 @@ public class Inflater {
         int index = -1;
 
         do {
-            // 因为树最大高度限制为 15, 所以 codeLen 的最大值为 14
+            // 因为树高度限制为 15, 所以 codeLen 的最大值为 14
             if (codeLen >= 15) {
                 throw new AssertionError("找不到对应的码");
             }
@@ -360,7 +365,7 @@ public class Inflater {
             if (codeList != null) {
                 index = codeList.indexOf(code);
             }
-        } while (index != -1);
+        } while (index == -1);
         // 此码的下标即为经过游程编码后的值
         return lenCodes.indexOf(code);
     }

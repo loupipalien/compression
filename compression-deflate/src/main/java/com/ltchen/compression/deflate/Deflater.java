@@ -42,7 +42,8 @@ public class Deflater {
     /**
      * 窗口大小
      */
-    private static int WINDOW_SIZE = 256;
+    // private static int WINDOW_SIZE = 256;
+    private static int WINDOW_SIZE = 32768;
 
     /**
      * 终止标记字符
@@ -76,7 +77,10 @@ public class Deflater {
      */
     private int remainBits;
 
-    public Deflater(BitInputStream in, BitOutputStream out) {
+    private DeflateCompressor dc;
+
+    public Deflater(DeflateCompressor dc, BitInputStream in, BitOutputStream out) {
+        this.dc = dc;
         this.in = in;
         this.out = out;
         crc = new CRC();
@@ -95,6 +99,7 @@ public class Deflater {
         int len;
         while ((len = in.read(buffer, 0, BUFFER_SIZE)) > 0) {
             // TODO 显示进度
+            dc.updateProgress(in.getCount());
 
             // 将上一次处理的块写出
             if (bos.getCount() > 0) {
@@ -105,6 +110,7 @@ public class Deflater {
             }
 
             // TODO  冗余循环校验
+            crc.update(buffer, 0, len);
 
             /*
              * 无压缩写出
@@ -114,6 +120,7 @@ public class Deflater {
                 bos.writeShort(len);
                 bos.writeShort(len ^ 0xffff);
                 bos.write(buffer, 0, len);
+                // TODO 不懂这里窗口是用于做什么 ???
                 window.add(buffer, 0 , len);
                 remainBits = 0;
                 continue;
@@ -143,6 +150,11 @@ public class Deflater {
                     distFreq[pair.distCode]++;
                     // 更新长度的频次 (literal 和 length 使用一个码表)
                     litFreq[pair.lenCode]++;
+                } else {
+                    // 将字节加入窗口
+                    window.add(buffer[i]);
+                    // 更新字符频次
+                    litFreq[buffer[i] & 0xff]++;
                 }
             }
             // 添加块结束标记符
@@ -151,7 +163,7 @@ public class Deflater {
             // 生成霍夫曼码
             int[] litCodes, litCodeLens, distCodes, distCodeLens, clenCodes, clenCodeLens;
             List<Integer> clens;
-            // 树限制深度为 15, 不懂 PK 为何这样设计 (但大神总有大神的理由...崇拜中)
+            // 树限制深度为 15, 不懂 PK 为何这样设计 (但大神总有大神的理由...膜拜中)
             int treeLimitDepth = 15;
             if (BTYPE == 2) {
                 // 生成 literal 码
@@ -311,7 +323,7 @@ public class Deflater {
      * @param codes 码序列
      * @param codeLens 码长度序列
      */
-    protected void printCodes(int count, int[] codes, int[]codeLens) {
+    private void printCodes(int count, int[] codes, int[]codeLens) {
         for (int i = 0; i < count; i++) {
             if (codeLens[i] > 0) {
                 String code = String.format("%" + codeLens[i] + "s", Integer.toBinaryString(codes[i]));
@@ -331,6 +343,6 @@ public class Deflater {
 
     public static void main(String[] args) {
         System.out.println(Integer.toBinaryString(5));
-        System.out.println(String.format("%1s", Integer.toBinaryString(127)));
+        System.out.println(String.format("%10s", Integer.toBinaryString(127)));
     }
 }

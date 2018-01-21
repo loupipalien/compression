@@ -37,7 +37,7 @@ public class HuffmanTree {
     public HuffmanTree(int[] freqs, int limitDepth) {
         // 初始化
         codeCount = freqs.length;
-        depthMap = new TreeMap<Integer,List<LeafNode>>();
+        depthMap = new TreeMap<>();
         maxDepth = 0;
 
         // 初始化叶子节点
@@ -145,11 +145,10 @@ public class HuffmanTree {
             traverse(((InternalNode) node).right, depth + 1);
         } else {
             if (Objects.isNull(depthMap.get(depth))) {
-                depthMap.put(depth, new ArrayList<LeafNode>());
+                depthMap.put(depth, new ArrayList<>());
             }
             depthMap.get(depth).add((LeafNode) node);
         }
-
     }
 
     /**
@@ -230,8 +229,8 @@ public class HuffmanTree {
             left.side = 0;
             this.left = left;
             // 初始右孩子
-            left.parent = this;
-            left.side = 1;
+            right.parent = this;
+            right.side = 1;
             this.right = right;
             // 此节点权重值为左孩子的权重值加右孩子权重值
             this.weight = left.weight + right.weight;

@@ -119,7 +119,7 @@ public class DeflateCompressor implements Compressor {
             }
 
             // 压缩数据并写出
-            Deflater deflater = new Deflater(bis, bos);
+            Deflater deflater = new Deflater(this, bis, bos);
             deflater.process();
 
             // 写出文件尾
@@ -157,7 +157,7 @@ public class DeflateCompressor implements Compressor {
             bis.skipBytes(6);
 
             // 解压数据并写出
-            Inflater inflater = new Inflater(bis, bos);
+            Inflater inflater = new Inflater(this, bis, bos);
             inflater.process();
 
             // 读取文件尾
@@ -180,7 +180,7 @@ public class DeflateCompressor implements Compressor {
         lastPercent = -1;
     }
 
-    private void updateProgress(long readBytes){
+    public void updateProgress(long readBytes){
         if (showProgress) {
             long percent = readBytes * 100 / fileSize;
             if (percent != lastPercent) {

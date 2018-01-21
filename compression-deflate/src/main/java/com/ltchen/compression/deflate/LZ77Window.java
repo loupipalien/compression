@@ -104,10 +104,10 @@ public class LZ77Window {
             return null;
         }
         // 在滑动窗口中从后向前做匹配
-        for (int i = 0; i < size; i++) {
+        for (int i = 1; i <= size; i++) {
             // 已匹配的长度
             int matchLen = 0;
-            int start = (pos - i - 1) & mask;
+            int start = (pos - i) & mask;
             // 匹配的起始下标
             int x = start;
             int y = off;
@@ -128,7 +128,7 @@ public class LZ77Window {
                 y++;
             }
             // 当大于最小匹配时返回第一个匹配的 LZ77Pair
-            if (matchLen >= MAX_MATCH) {
+            if (matchLen >= MIN_MATCH) {
                 return new LZ77Pair(matchLen, i);
             }
         }
