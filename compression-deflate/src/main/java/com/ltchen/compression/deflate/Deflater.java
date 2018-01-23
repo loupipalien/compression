@@ -15,7 +15,7 @@ public class Deflater {
     /**
      * 是否开启 debug
      */
-    private static boolean DEBUG = false;
+    private static boolean DEBUG = true;
 
     /**
      * 数据集最后块的标记符
