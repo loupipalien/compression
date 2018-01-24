@@ -101,7 +101,7 @@ public class HuffmanTable {
         int runLen = 1;
         // 获取第一个码字的长度
         int last = codeLens[0];
-        for (int i = 1; i < n; i++) {
+        for (int i = 1; i <= n; i++) {
             if (i < n && last == codeLens[i]) {
                 runLen++;
             } else {

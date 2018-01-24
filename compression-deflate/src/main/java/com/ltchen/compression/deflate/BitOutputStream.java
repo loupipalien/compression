@@ -140,7 +140,7 @@ public class BitOutputStream {
      * @throws IOException
      */
     public void writeBitsR(int val, int n) throws IOException {
-        for (int m = n; m > 0; m--) {
+        for (int m = n - 1; m >= 0; m--) {
             // 将每个 bit 位拼接到正确的位置
             bitVal |= ((val >>> m) & 1) << bitPos;
             bitPos++;
