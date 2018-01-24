@@ -13,9 +13,17 @@ import java.util.List;
 public class Deflater {
 
     /**
+     * 见 RFC 1951, 3.2.7 章节 (https://www.ietf.org/rfc/rfc1951.txt)
+     * +-BFINAL-+-BTYPE-+-HLIT-+-HDIST-+-HCLEN-+-/CLL (HCLEN + 4)/-+-/CL1 (HLIT + 257)/-+-/CL2 (HDIST + 1)/-+-/LIT 编码流 + DIST 编码流/-+
+     * |    *   |  **   |***** | ***** | ****  |***|    ...    |***|     ***...***      |     ***...***     |        ***...***         |
+     * +--------+-------+------+-------+-------+-------------------+--------------------+-------------------+--------------------------+
+     * 注: * 表示一个比特
+     */
+
+    /**
      * 是否开启 debug
      */
-    private static boolean DEBUG = true;
+    private static boolean DEBUG = false;
 
     /**
      * 数据集最后块的标记符
@@ -43,7 +51,7 @@ public class Deflater {
      * 窗口大小
      */
     // private static int WINDOW_SIZE = 256;
-    private static int WINDOW_SIZE = 32768;
+    private static int WINDOW_SIZE = 256;
 
     /**
      * 终止标记字符
@@ -98,7 +106,7 @@ public class Deflater {
         // 最大为 BUFFER_SIZE, 即 2^16
         int len;
         while ((len = in.read(buffer, 0, BUFFER_SIZE)) > 0) {
-            // TODO 显示进度
+            // 显示进度
             dc.updateProgress(in.getCount());
 
             // 将上一次处理的块写出
@@ -109,7 +117,7 @@ public class Deflater {
                 baos.reset();
             }
 
-            // TODO  冗余循环校验
+            // 更新冗余循环校验
             crc.update(buffer, 0, len);
 
             /*
@@ -311,7 +319,7 @@ public class Deflater {
                     out.writeBits(block[i], remainBits);
                 } else {
                     // 每次写出一个字节
-                    out.writeBitsR(block[i], 8);
+                    out.writeBits(block[i], 8);
                 }
             }
         }
