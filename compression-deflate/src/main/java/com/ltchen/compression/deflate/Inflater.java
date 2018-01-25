@@ -100,11 +100,11 @@ public class Inflater {
     }
 
     public long process() throws IOException {
-        // 读取文件头标记
-        int bFinal = in.readBits(1);
-        int bType = in.readBits(2);
         // 处理压缩块数据块
-        do {
+        while (true){
+            // 读取文件头标记
+            int bFinal = in.readBits(1);
+            int bType = in.readBits(2);
             if (bType == 0) {
                 // 清除文件头标记
                 in.clearBits();
@@ -125,7 +125,12 @@ public class Inflater {
             }
             // 更新处理进度
             dc.updateProgress(in.getCount());
-        } while (bFinal == 0);
+
+            // 是否为最后一个压缩数据块
+            if (bFinal == BFINAL) {
+                break;
+            }
+        }
         // 返回处理字节数
         return out.getCount();
     }
@@ -229,10 +234,14 @@ public class Inflater {
             if (code < 16) {
                 lengths[i] = code;
             } else {
+                // 重复次数
                 int n = 0;
+                // 重复码
+                int c = 0;
                 if (code == 16) {
                     // 16 标识前一个 code 有重复 3 - 6 次
                     n = 3 + in.readBits(2);
+                    c = lengths[i - 1];
                 }
                 if (code == 17) {
                     // 17 标识 code = 0 重复 3 - 10 次
@@ -243,7 +252,7 @@ public class Inflater {
                     n = 11 + in.readBits(7);
                 }
                 for (int j = 0; j < n; j++) {
-                    lengths[i + j] = lengths[i - 1];
+                    lengths[i + j] = c;
                 }
                 // 向后滑动
                 i += (n - 1);

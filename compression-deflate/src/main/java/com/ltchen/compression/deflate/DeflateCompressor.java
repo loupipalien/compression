@@ -18,6 +18,7 @@ public class DeflateCompressor implements Compressor {
      * +---+---+---+---+---+---+---+---+---+---+========//========+===========//==========+---+---+---+---+---+---+---+---+
      * |ID1|ID2| CM|FLG|     MTIME     |XFL| OS|    额外的头字段    |        压缩的数据       |      CRC      |     ISIZE     |
      * +---+---+---+---+---+---+---+---+---+---+========//========+===========//==========+---+---+---+---+---+---+---+---+
+     * 注: 一格为一比特
      */
 
     /**
@@ -112,11 +113,16 @@ public class DeflateCompressor implements Compressor {
             bos.writeByte(ID1);
             bos.writeByte(ID2);
             bos.writeByte(CM);
-            bos.writeByte(FLG);
+            //bos.writeByte(FLG);
+            bos.writeByte(8);
             // TODO 后续处理文件头格式
             for (int i = 0; i < 6; i++) {
                 bos.writeByte(0);
             }
+
+            // 写出文件名
+            bos.write(fileName.getBytes());
+            bos.writeByte(0);
 
             // 压缩数据并写出
             Deflater deflater = new Deflater(this, bis, bos);
@@ -151,10 +157,17 @@ public class DeflateCompressor implements Compressor {
             // 读取文件头中的文件标记
             int flg = bis.readByte();
             if ((flg & (FTEXT | FHCRC | FEXTRA | FNAME | FCOMMENT)) != 0) {
-                throw new AssertionError("不支持的扩展标记");
+                //throw new AssertionError("不支持的扩展标记");
             }
             // 跳过文件头后续 6 个字节
             bis.skipBytes(6);
+
+            if ((flg & FNAME) != 0) {
+                int b;
+                do {
+                    b = bis.readByte();
+                } while (b != 0);
+            }
 
             // 解压数据并写出
             Inflater inflater = new Inflater(this, bis, bos);
@@ -166,7 +179,8 @@ public class DeflateCompressor implements Compressor {
                 throw new AssertionError(String.format("循环冗余校验失配, 期望值 = %08X, 实际值 = %08X", inflater.getCRCValue(), crc));
             }
             bis.readUnsignedInt();
-            // TODO 显示处理进度
+            // 显示处理进度
+            updateProgress(bis.getCount());
         } catch (IOException e) {
             e.printStackTrace();
         }

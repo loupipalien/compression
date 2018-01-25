@@ -50,8 +50,7 @@ public class Deflater {
     /**
      * 窗口大小
      */
-    // private static int WINDOW_SIZE = 256;
-    private static int WINDOW_SIZE = 256;
+    private static int WINDOW_SIZE = 32768;
 
     /**
      * 终止标记字符
